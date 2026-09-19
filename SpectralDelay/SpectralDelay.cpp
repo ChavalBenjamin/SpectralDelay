@@ -212,18 +212,30 @@ void SpectralDelay::UpdateYAxisMarks()
   bool syncOn = GetParam(kParamSyncMode)->Value() != 0.;
   if (syncOn)
   {
-    // Repere REACTIF au BPM en direct - la grille de calage exacte
-    // (binaire/ternaire) reste interne au moteur, mais ces reperes
-    // confirment concretement que l'affichage suit bien le tempo reel.
+    // Grille complete : 1/4 a 1/64, binaire ET ternaire, reactive au
+    // BPM en direct (le tempo peut changer pendant la lecture).
     double bpm = mLastBPM.load();
     double quarterMs = 60000.0 / std::max(bpm, 1.0);
-    char buf0[32], buf1[32], buf2[32];
-    snprintf(buf0, sizeof(buf0), "%.0f BPM", bpm);
-    snprintf(buf1, sizeof(buf1), "1/4 = %.0fms", quarterMs);
-    snprintf(buf2, sizeof(buf2), "1/1 = %.0fms", quarterMs * 4.0);
-    marks.push_back({ -1.f, buf0, false });
-    marks.push_back({ 0.f, buf1, true });
-    marks.push_back({ 1.f, buf2, false });
+
+    struct Division { const char* name; double divisor; };
+    static const Division kDivisions[5] = {
+      { "1/4", 1.0 }, { "1/8", 2.0 }, { "1/16", 4.0 }, { "1/32", 8.0 }, { "1/64", 16.0 }
+    };
+
+    for (const auto& div : kDivisions)
+    {
+      double binaryMs = quarterMs / div.divisor;
+      float axisVal = mDelayL.MsToAxisValue((float)binaryMs);
+      char buf[24];
+      snprintf(buf, sizeof(buf), "%s = %.0fms", div.name, binaryMs);
+      marks.push_back({ axisVal, buf, div.divisor == 1.0 });
+
+      double ternaryMs = binaryMs * 2.0 / 3.0;
+      float ternaryAxisVal = mDelayL.MsToAxisValue((float)ternaryMs);
+      char bufT[24];
+      snprintf(bufT, sizeof(bufT), "%sT = %.0fms", div.name, ternaryMs);
+      marks.push_back({ ternaryAxisVal, bufT, false });
+    }
   }
   else
   {

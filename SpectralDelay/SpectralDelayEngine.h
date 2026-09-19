@@ -70,11 +70,18 @@ public:
   // Meme conversion, mais directement en position sur l'axe de la
   // courbe (-1..1) - evite de dupliquer kMaxDelayMs/kDelayCurveExponent
   // cote UI (source unique de verite).
-  float GetEffectiveMinDelayAxisValue() const
+  // Conversion generique ms -> position sur l'axe de la courbe (-1..1) -
+  // reutilisable pour n'importe quel repere (seuil minimum, divisions
+  // rythmiques...), evite de dupliquer la formule partout.
+  float MsToAxisValue(float ms) const
   {
-    float ms = GetEffectiveMinDelayMs();
     float t = std::pow(std::clamp(ms / kMaxDelayMs, 0.f, 1.f), 1.f / kDelayCurveExponent);
     return 2.f * t - 1.f;
+  }
+
+  float GetEffectiveMinDelayAxisValue() const
+  {
+    return MsToAxisValue(GetEffectiveMinDelayMs());
   }
   void SetBPM(double bpm) { mBPM = bpm; }
 
