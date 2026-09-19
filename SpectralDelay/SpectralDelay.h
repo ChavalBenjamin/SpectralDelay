@@ -99,6 +99,8 @@ private:
   int mSpectrumUISize = 0;
 
   std::atomic<bool> mCurveUIUpdated { false };
+  std::atomic<double> mLastBPM { 120.0 };
+  std::atomic<bool> mLastSyncMode { false };
   float mCurveUIBuf[512] = { 0.f };
   int mCurveUISize = 0;
 #endif

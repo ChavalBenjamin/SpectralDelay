@@ -102,6 +102,12 @@ void SpectralDelay::OnIdle()
   {
     mCurveView->SetSpectrumData(mSpectrumUIBuf, mSpectrumUISize, mAnalyzer.GetSampleRate(), mAnalyzer.GetFFTSize());
   }
+
+  // Rafraichit l'affichage BPM en Sync en continu (le tempo peut changer
+  // pendant la lecture) - seulement quand Sync est actif, pour ne pas
+  // reconstruire l'axe inutilement sinon.
+  if (mCurveView && GetParam(kParamSyncMode)->Value() != 0.)
+    UpdateYAxisMarks();
 #endif
 }
 
@@ -161,6 +167,15 @@ void SpectralDelay::UpdateFFTConfig()
     mDryDelayR.assign(mDryDelaySize, 0.f);
     mDryDelayPos = 0;
   }
+
+  // SetLatency() REMIS : le crash precedent (projet fusionne) venait
+  // probablement du mutex de securite entre threads (corrige depuis),
+  // pas de cette methode - elle avait ete retiree par precaution au
+  // mauvais moment. Informe l'hote (Reaper) du vrai retard, pour qu'il
+  // compense sur l'ensemble de la session (PDC) - a tester avec
+  // attention (changements de FFT Size pendant la lecture) malgre cette
+  // conviction, vu qu'elle avait deja ete soupconnee une fois.
+  SetLatency(mDryDelaySize);
 }
 
 void SpectralDelay::UpdateEngine()
@@ -191,10 +206,40 @@ void SpectralDelay::UpdateEngine()
 void SpectralDelay::UpdateYAxisMarks()
 {
   if (!mCurveView) return;
+
   std::vector<SpectralCurvePreviewControl::AxisMark> marks;
-  marks.push_back({ -1.f, "0 ms", false });
-  marks.push_back({ 0.f, "1.25 s", true });
-  marks.push_back({ 1.f, "2.5 s", false });
+
+  bool syncOn = GetParam(kParamSyncMode)->Value() != 0.;
+  if (syncOn)
+  {
+    // Repere REACTIF au BPM en direct - la grille de calage exacte
+    // (binaire/ternaire) reste interne au moteur, mais ces reperes
+    // confirment concretement que l'affichage suit bien le tempo reel.
+    double bpm = mLastBPM.load();
+    double quarterMs = 60000.0 / std::max(bpm, 1.0);
+    char buf0[32], buf1[32], buf2[32];
+    snprintf(buf0, sizeof(buf0), "%.0f BPM", bpm);
+    snprintf(buf1, sizeof(buf1), "1/4 = %.0fms", quarterMs);
+    snprintf(buf2, sizeof(buf2), "1/1 = %.0fms", quarterMs * 4.0);
+    marks.push_back({ -1.f, buf0, false });
+    marks.push_back({ 0.f, buf1, true });
+    marks.push_back({ 1.f, buf2, false });
+  }
+  else
+  {
+    marks.push_back({ -1.f, "0 ms", false });
+    marks.push_back({ 0.f, "1.25 s", true });
+    marks.push_back({ 1.f, "2.5 s", false });
+  }
+
+  // Repere ROUGE : seuil reel en dessous duquel une bande reste en
+  // passthrough total (aucun delai) - grandit avec la taille FFT/
+  // Overlap, utile pour se reperer surtout en mode Dessin libre.
+  float dangerAxisVal = mDelayL.GetEffectiveMinDelayAxisValue();
+  char bufDanger[48];
+  snprintf(bufDanger, sizeof(bufDanger), "min effectif: %.1fms", mDelayL.GetEffectiveMinDelayMs());
+  marks.push_back({ dangerAxisVal, bufDanger, false, true });
+
   mCurveView->SetYAxisMarks(marks);
 }
 
@@ -210,6 +255,7 @@ void SpectralDelay::OnParamChange(int paramIdx)
     case kParamFFTSize:
     case kParamOverlap:
       UpdateFFTConfig();
+      UpdateYAxisMarks();
       break;
 
     case kParamShapeMode:
@@ -223,6 +269,10 @@ void SpectralDelay::OnParamChange(int paramIdx)
     case kParamHorizon:
     case kParamSkew:
       UpdateEngine();
+      break;
+
+    case kParamSyncMode:
+      UpdateYAxisMarks();
       break;
 
     case kParamLimiterThreshold:
@@ -255,6 +305,7 @@ void SpectralDelay::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
   float feedback = (float)(GetParam(kParamFeedback)->Value() / 100.0);
   bool syncMode = GetParam(kParamSyncMode)->Value() != 0.;
   double bpm = GetTempo(); // confirmee fonctionnelle (utilisee dans MagniPhase)
+  mLastBPM.store(bpm);
 
   {
     std::lock_guard<std::mutex> curveLock(mCurveMutex);

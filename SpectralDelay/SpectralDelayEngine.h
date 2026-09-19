@@ -61,6 +61,21 @@ public:
   // fenetre FFT complete, meme principe que SpectralMagnitudeDistortEngine
   // (tampon circulaire STFT).
   int GetLatencySamples() const { return mFFTSize; }
+
+  // Seuil reel en dessous duquel une bande reste en passthrough total
+  // (aucun delai applique) - utile pour l'affichage (marquer visuellement
+  // ce seuil, qui grandit avec la taille FFT/Overlap).
+  float GetEffectiveMinDelayMs() const { return mHopDurationMs * 0.5f; }
+
+  // Meme conversion, mais directement en position sur l'axe de la
+  // courbe (-1..1) - evite de dupliquer kMaxDelayMs/kDelayCurveExponent
+  // cote UI (source unique de verite).
+  float GetEffectiveMinDelayAxisValue() const
+  {
+    float ms = GetEffectiveMinDelayMs();
+    float t = std::pow(std::clamp(ms / kMaxDelayMs, 0.f, 1.f), 1.f / kDelayCurveExponent);
+    return 2.f * t - 1.f;
+  }
   void SetBPM(double bpm) { mBPM = bpm; }
 
   void Process(const float* in, float* out, int nFrames)

@@ -34,6 +34,7 @@ public:
     float value; // position sur l'axe -1 a 1 (meme echelle que la courbe)
     std::string label;
     bool bold;
+    bool danger = false; // rouge - marque un seuil critique (ex: minimum de delai effectif)
   };
 
   SpectralCurvePreviewControl(const iplug::igraphics::IRECT& bounds, ShapeChangedFunc onShapeChanged = nullptr)
@@ -179,9 +180,11 @@ public:
     {
       bool isTernary = !mark.label.empty() && mark.label.back() == 'T';
       float y = midY - mark.value * h;
-      IColor lineColor = isTernary ? IColor(255, 90, 70, 45) : IColor(255, 40, 40, 45);
+      IColor lineColor = mark.danger ? IColor(255, 210, 50, 50)
+                       : isTernary ? IColor(255, 90, 70, 45) : IColor(255, 40, 40, 45);
       g.DrawLine(lineColor, mRECT.L, y, mRECT.R, y, nullptr, mark.bold ? 2.f : 1.f);
-      const IText& text = isTernary ? yTextTernary : (mark.bold ? yTextBold : yText);
+      IText yTextDanger(9.f, IColor(255, 230, 70, 70), "Roboto-Regular", EAlign::Near, EVAlign::Middle);
+      const IText& text = mark.danger ? yTextDanger : isTernary ? yTextTernary : (mark.bold ? yTextBold : yText);
       g.DrawText(text, mark.label.c_str(), IRECT(mRECT.L + 2.f, y - 7.f, mRECT.L + 60.f, y + 7.f));
     }
 
