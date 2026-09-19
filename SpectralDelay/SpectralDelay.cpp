@@ -218,8 +218,8 @@ void SpectralDelay::UpdateYAxisMarks()
     double quarterMs = 60000.0 / std::max(bpm, 1.0);
 
     struct Division { const char* name; double divisor; };
-    static const Division kDivisions[5] = {
-      { "1/4", 1.0 }, { "1/8", 2.0 }, { "1/16", 4.0 }, { "1/32", 8.0 }, { "1/64", 16.0 }
+    static const Division kDivisions[7] = {
+      { "1/1", 0.25 }, { "1/2", 0.5 }, { "1/4", 1.0 }, { "1/8", 2.0 }, { "1/16", 4.0 }, { "1/32", 8.0 }, { "1/64", 16.0 }
     };
 
     for (const auto& div : kDivisions)
@@ -239,9 +239,20 @@ void SpectralDelay::UpdateYAxisMarks()
   }
   else
   {
-    marks.push_back({ -1.f, "0 ms", false });
-    marks.push_back({ 0.f, "1.25 s", true });
-    marks.push_back({ 1.f, "2.5 s", false });
+    // Dix reperes, repartis selon la MEME courbe en puissance que le
+    // mapping reel (plus de resolution en bas) - plutot que 3 points
+    // espaces lineairement sur l'axe.
+    static const float kMsMarks[10] = { 0.f, 25.f, 75.f, 150.f, 300.f, 500.f, 800.f, 1250.f, 1800.f, 2500.f };
+    for (int i = 0; i < 10; i++)
+    {
+      float axisVal = mDelayL.MsToAxisValue(kMsMarks[i]);
+      char buf[24];
+      if (kMsMarks[i] >= 1000.f)
+        snprintf(buf, sizeof(buf), "%.2fs", kMsMarks[i] / 1000.f);
+      else
+        snprintf(buf, sizeof(buf), "%.0fms", kMsMarks[i]);
+      marks.push_back({ axisVal, buf, i == 5 });
+    }
   }
 
   // Repere ROUGE : seuil reel en dessous duquel une bande reste en

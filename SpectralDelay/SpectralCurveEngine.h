@@ -17,9 +17,10 @@
 //  - Cycles  : nombre de repetitions de la forme a travers le spectre (jusqu'a 24)
 //  - Q       : 0 = plat, milieu = forme pleine, max = notchs etroits
 //  - Ballade : phase (0..1 = un tour complet) - boucle proprement pour un LFO
-//  - Horizon : asymetrie - 0.5 = symetrique, vers 0 = ne garde que les
-//              bosses positives, vers 1 = ne garde que les creux negatifs
-//              (avec decalage +1 progressif au-dela de 50%)
+//  - Horizon : DECALAGE GLOBAL en Y (version Delay de ce fichier - voir
+//              SpectralFiltre/SpectralDistortion pour la version
+//              "asymetrie") - 0.5 = neutre, vers 0 = decale vers le bas,
+//              vers 1 = decale vers le haut, forme relative inchangee
 //  - Skew    : redistribue la POSITION des cycles sur l'axe X (pas leur
 //              hauteur) - resserre d'un cote, etire de l'autre
 // ============================================================================
@@ -117,26 +118,14 @@ public:
         y = signS * std::pow(std::abs(s), power); // pointe (pas 1/power, qui aplatissait)
       }
 
-      // 3. Horizon : asymetrie - 0.5 = symetrique (rien ne change).
-      float posGain, negGain;
-      float shiftUp = 0.f; // decalage progressif +1 au-dela de 50% (voir plus bas)
-      if (mHorizon <= 0.5f)
-      {
-        posGain = 1.f;
-        negGain = mHorizon / 0.5f;
-      }
-      else
-      {
-        negGain = 1.f;
-        posGain = (1.f - mHorizon) / 0.5f;
-        // Au-dela de 50%, decale progressivement vers le haut (0 a
-        // horizon=0.5, +1 complet a horizon=1) - a l'extreme, les creux
-        // negatifs (-1 a 0) deviennent des bosses positives (0 a +1),
-        // sans changer leur forme (toujours pilotee par Q).
-        shiftUp = (mHorizon - 0.5f) / 0.5f;
-      }
-      y *= (y >= 0.f) ? posGain : negGain;
-      y += shiftUp;
+      // 3. Horizon : DECALAGE GLOBAL en Y (+valeur/-valeur), pas une
+      // asymetrie de forme - pour ce module (Delay), l'axe Y represente
+      // directement du temps, donc deplacer l'ensemble de la courbe (ou
+      // du dessin) fait plus sens que la reformer. 0.5 = neutre (aucun
+      // decalage), vers 0 = decale vers le bas, vers 1 = decale vers le
+      // haut - la forme relative reste identique dans tous les cas.
+      float offset = (mHorizon - 0.5f) * 2.f; // -1..+1
+      y += offset;
 
       mCurve[i] = y;
     }
