@@ -13,7 +13,7 @@ on:
         default: makefile
 
 env:
-  PROJECT_NAME: OperateursSpectraux
+  PROJECT_NAME: SpectralDelay
 
 jobs:
   build-makefile:

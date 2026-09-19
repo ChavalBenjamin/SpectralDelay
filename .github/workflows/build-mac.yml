@@ -23,9 +23,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [OperateursSpectraux]
+        project: [SpectralDelay]
         # Add more projects here:
-        # project: [OperateursSpectraux, VisageTemplate]
+        # project: [SpectralDelay, VisageTemplate]
 
     steps:
     - name: Check out repository
@@ -121,9 +121,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [OperateursSpectraux]
+        project: [SpectralDelay]
         # Add more projects here:
-        # project: [OperateursSpectraux, VisageTemplate]
+        # project: [SpectralDelay, VisageTemplate]
 
     steps:
       - name: Download artifact

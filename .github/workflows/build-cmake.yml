@@ -53,7 +53,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PROJECT_NAME: OperateursSpectraux
+  PROJECT_NAME: SpectralDelay
 
 jobs:
   # ============================================================================

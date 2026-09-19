@@ -7,7 +7,7 @@ on:
       - "v*"
 
 env:
-  PROJECT_NAME: OperateursSpectraux
+  PROJECT_NAME: SpectralDelay
 
 jobs:
   create_release:
