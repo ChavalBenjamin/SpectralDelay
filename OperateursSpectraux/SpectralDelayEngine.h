@@ -56,6 +56,11 @@ public:
   void SetCurve(const float* curve, int curveSize) { mCurve = curve; mCurveSize = curveSize; }
   void SetFeedback(float fb) { mFeedback = std::max(0.f, fb); } // peut depasser 1.0
   void SetSyncMode(bool sync) { mSyncMode = sync; }
+
+  // Latence de traitement introduite (en echantillons) - environ une
+  // fenetre FFT complete, meme principe que SpectralMagnitudeDistortEngine
+  // (tampon circulaire STFT).
+  int GetLatencySamples() const { return mFFTSize; }
   void SetBPM(double bpm) { mBPM = bpm; }
 
   void Process(const float* in, float* out, int nFrames)
@@ -213,7 +218,11 @@ private:
         mBinHistory[k][mHistoryWritePos[k]] = mixed;
         mHistoryWritePos[k] = (mHistoryWritePos[k] + 1) % mMaxDelayHops;
 
-        mCplx[k] = mixed;
+        // SORTIE = uniquement l'echo retarde (delayed), jamais l'entree
+        // directe de ce hop - "vrai Wet" isole. L'entree ne rejoindra
+        // la sortie qu'une fois qu'elle aura vraiment traverse la ligne
+        // a retard, pas immediatement melangee comme avant.
+        mCplx[k] = delayed;
       }
 
       if (k > 0 && k < numBins)
