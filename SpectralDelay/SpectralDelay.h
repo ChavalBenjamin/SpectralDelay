@@ -75,6 +75,12 @@ private:
   BrickwallLimiter mLimiter;
   SpectrumAnalyzer mAnalyzer;
 
+  // Tampons de travail propres a CHAQUE instance (avant : "static" dans
+  // ProcessBlock, donc partages entre instances -> craquements multi-pistes).
+  float mBufL[8192] = { 0.f }, mBufR[8192] = { 0.f };
+  float mOutL[8192] = { 0.f }, mOutR[8192] = { 0.f };
+  float mBufMix[8192] = { 0.f };
+
   // Protege le moteur : Init() (thread principal, au changement de FFT
   // Size) ne doit jamais s'executer en meme temps que Process() (thread
   // audio) - lecon tiree d'un crash reproductible a grande taille FFT
